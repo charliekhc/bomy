@@ -78,7 +78,7 @@ A curated consortium where Malaysian and international brands, media storytellin
 For a regular-order purchase at retail price `R` with commission `c = 25%`:
 
 - **No voucher/discount:** BOMY takes `R × c`
-- **Platform voucher (#1 applied):** BOMY takes `R × c` from full retail (BOMY absorbs voucher cost from its own margin)
+- **Platform voucher (#1 applied):** BOMY takes `R × c` from full retail. **The voucher is fully BOMY-funded** — BOMY absorbs the entire voucher amount from its own margin. The seller receives the same amount as if no voucher was used (`R × (1 − c)`), so sellers are commercially neutral to platform voucher campaigns
 - **Brand subscriber discount (#2 applied):** Let discounted price be `D = R × (1 − d)`. BOMY takes `D × c` (brand absorbs discount cost)
 - **No stacking:** platform voucher and brand discount are mutually exclusive at checkout
 
@@ -243,7 +243,7 @@ Deploy as one Node.js service with clear module boundaries, communicating via ev
 | Search (V1) | PostgreSQL FTS |
 | Search (V2) | MeiliSearch (migration path) |
 | Auth | NextAuth.js v5 |
-| PSP | TBD in ADR-06 (Curlec/Razorpay MY + Stripe for USD evaluated) |
+| PSP | Dual — Curlec/Razorpay Route (MYR) + Stripe Connect (USD). ADR-06 documents the accepted decision and settlement algorithm |
 | Email | SendGrid |
 | SMS | Twilio |
 | Push | Firebase Cloud Messaging |
@@ -272,6 +272,20 @@ Deploy as one Node.js service with clear module boundaries, communicating via ev
 - RBAC with policies: Buyer, Seller Staff, Seller Owner, BOMY Ops, BOMY Admin, BOMY Finance
 - PostgreSQL Row-Level Security policies for seller isolation (`current_setting('app.current_seller_id')`)
 - API-level + object-level authorization (two checks on every sensitive mutation)
+
+### RLS Implementation Guardrails
+
+Row-Level Security only protects data if tenant context is reliably set and reset around every database access. A misconfigured connection pool or a missed middleware can silently expose cross-tenant data with no runtime error. Guardrails — all mandatory for Stage 2 merge:
+
+1. **Connection acquisition wrapper** — the app never obtains a DB connection directly. All access goes through a helper that (a) opens a transaction, (b) runs `SET LOCAL app.current_user_id`, `SET LOCAL app.current_user_role`, `SET LOCAL app.current_seller_id` (when applicable), (c) executes the query, (d) commits/rolls back, (e) returns connection to pool. `SET LOCAL` scopes values to the transaction — no leakage across pool reuse.
+2. **Default-deny RLS policies** — every tenant-scoped table has RLS enabled with a default-deny policy plus explicit allow policies keyed on the `app.current_*` settings. Tables without RLS enabled fail a CI lint check.
+3. **Admin escape hatch is explicit** — bypassing RLS requires setting `app.bypass_rls = true` inside a transaction, and only runs on a dedicated DB role (`bomy_admin`) available only to admin services. Every bypass emits an audit-log entry with user, reason, SQL statement.
+4. **Middleware enforcement** — every HTTP request hits a middleware that sets tenant context from the authenticated session before any route handler runs. Request paths that legitimately need no tenant context (health checks, public marketing) are allow-listed by exact route match.
+5. **Integration tests for RLS bypass attempts** — test suite includes negative tests: seller A's session attempts to read seller B's orders (must return empty), admin without `app.bypass_rls` attempts cross-tenant query (must return empty), unauthenticated request attempts any tenant-scoped query (must fail).
+6. **Runtime assertion** — in dev/staging, every query emits a warning if run without `app.current_user_id` set. In production, the same condition emits a structured log line tagged `rls.missing_context` which alerts if > 0 events/hour in normal flow.
+7. **Schema migrations require RLS review** — any migration touching a tenant-scoped table must include RLS policy changes in the same PR. Migration CI step verifies RLS enabled on all tenant-scoped tables.
+8. **Connection pool configuration** — `pool.max` sized to match expected peak; connections use `DISCARD ALL` on return to pool as defence-in-depth against leaked session state; `statement_timeout` and `idle_in_transaction_session_timeout` set to bound blast radius of any misuse.
+9. **Threat model entry (Stage 0):** explicit scenario "compromised seller credential attempts cross-tenant data access" — must be exercised in the Stage 8 pen test.
 
 ### Data Protection
 
@@ -305,7 +319,8 @@ Deploy as one Node.js service with clear module boundaries, communicating via ev
 |--------|---------|------|-----------|-------------------|
 | Cloudflare | Edge, WAF, DNS | Requests, IPs | Critical | Failover to direct origin, backup DNS |
 | AWS Singapore | Compute, DB | All platform data | Critical | Cross-AZ failover, backup region |
-| PSP (TBD) | Payments | Card tokens, bank | Critical | Fallback PSP per ADR-06 |
+| Curlec / Razorpay (MYR) | Payments | Card tokens, bank, FPX | Critical | Stripe handles USD corridor; internal failover to manual PSP if outage |
+| Stripe Connect (USD) | Payments | Card tokens | Critical | Curlec handles MYR corridor; manual PSP if outage |
 | SendGrid | Email | Addresses | High | SES fallback |
 | Twilio | SMS | Phone numbers | High | SES-SNS fallback |
 | Cloudinary | Video | Brand media | Medium | R2 fallback |
@@ -315,19 +330,70 @@ Deploy as one Node.js service with clear module boundaries, communicating via ev
 
 ## 8. Payment Architecture
 
-### PSP Decision (deferred to ADR-06)
+### PSP Decision (locked — dual PSP)
 
-Two candidate paths:
-- **Single-PSP:** Stripe Connect (supports MY via Stripe MY + cross-border USD), simpler ops
-- **Dual-PSP:** Curlec/Razorpay Route (better MY penetration, FPX) + Stripe for USD
+**Decision: dual PSP.**
+- **Curlec / Razorpay Route** — MYR orders, local payment methods (FPX, DuitNow, Malaysian cards), split payouts to seller MYR bank accounts
+- **Stripe (Connect)** — USD orders, international cards, cross-border payouts
 
-Stage 0 ADR-06 evaluates against: settlement time, payout cadence, split capabilities, MY card/FPX penetration, dispute tooling, fees.
+Rationale: no single PSP today covers both Malaysian local-payment depth (FPX/DuitNow are effectively mandatory for MYR) and the international USD corridor at competitive fees and reliable split-payout semantics. The ops overhead of running two PSPs is an accepted cost.
+
+**Routing rule:** the checkout currency determines the PSP. MYR → Curlec/Razorpay. USD → Stripe. Cart currency is locked at order creation; no mid-order PSP switching.
+
+**ADR-06** documents the accepted decision (status: Accepted at Stage 0 start). ADR-06 still owns the **settlement algorithm** per-case as described in "Settlement Algorithm" below, and the daily reconciliation job design. Those are non-trivial because the two PSPs have different webhook schemas, dispute windows, and payout cadences.
+
+**Cross-PSP operational concerns captured in ADR-06:**
+- Unified internal ledger with PSP-agnostic records; PSP is a metadata field
+- Dual webhook ingestion with per-PSP signature verification and idempotency
+- Per-PSP reconciliation job running against each settlement report
+- Dispute/chargeback handling flows routed by PSP of origin
+- Refund paths must use the same PSP as the original charge (no cross-PSP refund)
+- Reporting unifies revenue across PSPs by currency and `revenue_source`
 
 ### Split Payout Model
 
 - BOMY is **not** merchant of record in V1 default. Seller is merchant. BOMY takes commission via split payout at PSP level
 - **Exception:** Goodie Box and #1 platform membership — BOMY IS merchant of record (seller is BOMY itself)
 - Payout cadence: T+3 business days after order fulfilment confirmation, subject to 7-day return window hold for dispute buffer
+
+### Settlement Algorithm (must be formalised in ADR-06)
+
+Three distinct cash-flow topologies, one per discount case. The chosen PSP must support all three without reconciliation drift.
+
+**Case A — Regular order, no voucher/discount:**
+- Buyer pays `R` to PSP
+- PSP split: seller receives `R × 0.75`, BOMY receives `R × 0.25`
+- Direct PSP split payout works
+
+**Case B — Regular order, #2 brand subscriber discount applied (rate `d`):**
+- Buyer pays `D = R × (1 − d)` to PSP
+- PSP split: seller receives `D × 0.75`, BOMY receives `D × 0.25`
+- Direct PSP split payout works; the brand is bearing the discount cost out of its own share
+
+**Case C — Regular order, #1 platform voucher applied (amount `v`) — FULLY BOMY-FUNDED:**
+- Buyer pays `R − v` to PSP (NOT R, because the buyer never hands BOMY the full retail)
+- Seller is commercially owed `R × 0.75` (full 75% of retail) — seller is commercially neutral to platform voucher campaigns
+- BOMY is commercially owed `R × 0.25 − v` (its normal commission minus the voucher amount it fully funds). If `v > R × 0.25`, BOMY's net on that transaction is negative — this is acceptable and expected for acquisition campaigns; the voucher cap per campaign is admin-configurable to manage exposure
+- **Direct PSP split cannot represent this** — seller's payout exceeds the buyer's payment, because the voucher is funded entirely by BOMY
+- **Resolution:** for orders carrying a #1 voucher, BOMY funds the full shortfall `v × 0.75` to seller from its own float (the other `v × 0.25` is foregone commission). Two implementation options for ADR-06:
+  - **C1 Hold-and-forward:** PSP settles full buyer payment `R − v` to BOMY's operating account. BOMY then pays seller `R × 0.75` from a combination of buyer funds and BOMY margin. BOMY becomes merchant of record for voucher-carrying orders.
+  - **C2 Delayed reconciliation:** PSP does split on `R − v` proportionally. BOMY settles the delta (`v × 0.75`) to seller out-of-band daily/weekly. Reconciliation must be automated and audited.
+- Accounting entries (double-entry) regardless of implementation:
+  - Dr `voucher_fund_expense` `v`; Cr `seller_payable` `R × 0.75`; Dr `commission_revenue` `R × 0.25`; Cr `cash_received_from_buyer` `R − v`
+- **Refund of a #1-voucher order:** voucher is not re-issued; buyer receives `R − v` as refund; BOMY and seller unwind their respective revenue entries; BOMY absorbs the `v × 0.25` of commission it would have kept. This must be coded as an explicit refund algorithm, not left to per-case judgement.
+
+**Case D — Brand subscription plan purchase (term fee):**
+- Buyer pays `S` (the subscription price) to PSP
+- PSP split: brand receives `S × 0.90`, BOMY receives `S × 0.10`
+- Direct PSP split payout works. Must use a distinct `revenue_source` tag so reporting separates subscription revenue from regular orders.
+
+**ADR-06 owns the final choice between C1 and C2**, including:
+- Which is easier to get right with the chosen PSP
+- How it interacts with refunds and chargebacks
+- Working capital requirements on BOMY's side (C1 requires more float)
+- Treatment of brand's T+3 payout window when BOMY is intermediary
+
+**Reconciliation requirement:** daily reconciliation job compares (a) PSP settlement reports, (b) BOMY ledger entries, (c) per-seller payout records. Any variance > RM1 per transaction or > RM10 daily aggregate triggers ops review within 24h.
 
 ### Idempotency
 
@@ -352,12 +418,29 @@ Stage 0 ADR-06 evaluates against: settlement time, payout cadence, split capabil
 - **Base currency:** MYR — all platform revenue, commission, and accounting ledger in MYR
 - **USD:** shown alongside for international buyers; USD order creates snapshot of FX rate at order creation time
 
-### FX Rate Sources
+### FX Rate Sources & Failure Cascade
 
-- **Primary:** Bank Negara Malaysia (BNM) KL USD/MYR reference rate — daily fetch, cached for 24h
-- **Secondary (failover):** Open Exchange Rates API — used when BNM feed is stale > 48h
-- **Rate snapshot:** each order persists `fx_source`, `fx_rate`, `fx_timestamp`, `fx_version`, `rounding_mode`
-- **Historical immutability:** past transactions NEVER revalued — the snapshot is the source of truth
+Explicit cascade — each tier checked in order; first usable source wins. Every tier emits structured telemetry so failure mode transitions are observable.
+
+| Tier | Source | Freshness Rule | Behaviour |
+|------|--------|----------------|-----------|
+| 1 | BNM KL USD/MYR reference rate (primary) | Fetched at most 24h ago | Used normally |
+| 2 | BNM rate, stale 24–48h | Between 24h and 48h old | Used; checkout UI shows minor note "using most recent official rate"; ops alert fires |
+| 3 | Open Exchange Rates API (fallback) | Fetched successfully within last hour | Used, `fx_source` = `oer`; ops alert fires |
+| 4 | Last-known-good cached rate (any source) | Within last 7 days | **USD checkout proceeds using the last-known-good rate** with a clear buyer-facing disclaimer at checkout: rate may differ from current market, `fx_source` is tagged as `last_known`, `fx_tier` = 4, and the specific rate + its age are shown. Ops alert fires; admin banner displayed. |
+| 5 | No usable rate | Older than 7 days or no cache | USD checkout blocked. MYR checkout continues unaffected. P1 alert fires; ops runbook triggered. |
+
+**Key rules:**
+- **Never use a rate older than 7 days for live checkout** (protects against large FX drift under a prolonged outage — this is the hard ceiling behind Tier 4)
+- **Never synthesise a rate** from indirect sources (cross-pair calculation, third-party scraping) — only the named official/licensed sources are permitted
+- **Tier 4 disclaimer is mandatory and prominent** — buyer must see the rate, its timestamp/age, and acknowledge before confirming the order. The disclaimer text is admin-configurable
+- **MYR checkout must always remain available** if USD rate fails entirely (Tier 5) — international buyers can opt into MYR-denominated purchases
+- **Existing orders unaffected:** FX degradation impacts only new USD orders being created. Already-placed orders retain their snapshotted rate per the historical immutability rule below.
+
+### FX Snapshot & Immutability
+
+- **Rate snapshot:** each USD order persists `fx_source`, `fx_rate`, `fx_timestamp`, `fx_version`, `rounding_mode`, `fx_tier` (1–4, for audit of degraded-mode orders)
+- **Historical immutability:** past transactions NEVER revalued — the snapshot is the source of truth for refunds, reporting, and accounting
 
 ### Display Rules
 
@@ -671,7 +754,7 @@ All platform parameters editable by admin without code deploy. Stored in `platfo
   - ADR-03: Commission implementation (flat / tiered / category-based)
   - ADR-04: Return shipping default (party-at-fault matrix details)
   - ADR-05: Hosting/data residency final rule (AWS SG now, MY trigger criteria)
-  - ADR-06: PSP choice (single vs dual gateway)
+  - ADR-06: PSP choice (locked — dual: Curlec/Razorpay MYR + Stripe USD) + settlement algorithm
   - ADR-07: Wallet architecture (ledger schema, idempotency boundaries, top-up gate)
 - Third-party risk register filled
 - Evidence retention policy + S3 Object Lock configured
@@ -911,7 +994,7 @@ Since V1 hosts Malaysian buyer/seller PII in Singapore, PDPA Act 709 Section 129
   - Report to Charlie + filed in audit bucket
 - **Data residency trigger review** (annual): if Malaysian regulator issues residency requirement, ADR-05 migration criteria triggers and we move to ap-southeast-5
 
-**Incident disclosure:** PDPA breach notification to Commissioner within 72 hours of discovery (per PDPA 2024 amendment). Runbook lives in the on-call handbook.
+**Incident disclosure (provisional, pending legal validation):** Current working target is notification to the Personal Data Protection Commissioner within 72 hours of discovery, aligned with PDPA 2024 amendment guidance. The exact SLA, trigger thresholds (what qualifies as a "breach" under the amended Act), notification channel, and notifier role **must be validated by external legal counsel before the go-live runbook is finalized in Stage 9.** The 72-hour figure in this proposal should be treated as the working assumption for planning, not as fixed policy.
 
 ---
 
@@ -953,7 +1036,7 @@ Each ADR below follows the Nygard format: Context, Decision, Status, Consequence
 
 5. **ADR-05 Hosting/data residency** — AWS Singapore final confirmation + Malaysia trigger criteria. Owner: Andy. Due: Stage 0 W3.
 
-6. **ADR-06 PSP choice** — single (Stripe Connect MY) vs dual (Curlec/Razorpay + Stripe). Owner: Andy + Bob. Due: Stage 0 W4.
+6. **ADR-06 PSP choice & settlement algorithm** — **decision locked: dual PSP** (Curlec/Razorpay Route for MYR, Stripe Connect for USD). ADR-06 documents the accepted decision with status: Accepted, and formalises the settlement algorithm for the four cash-flow cases in Section 8 (Case A normal split, Case B brand-discount split, Case C #1-voucher with hold-and-forward or delayed reconciliation choice, Case D subscription-plan split) plus the daily reconciliation job design and cross-PSP operational concerns. Owner: Andy + Bob. Due: Stage 0 W4.
 
 7. **ADR-07 Wallet architecture** — ledger schema, idempotency boundary, top-up gate, KYC field reservation. Owner: Andy. Due: Stage 0 W4.
 
@@ -1007,6 +1090,8 @@ Each ADR below follows the Nygard format: Context, Decision, Status, Consequence
 - **v2 (2026-04-19)** — Consortium re-scope, locked business model, 3-tier membership, return policy verbatim, admin-config-first, AWS Singapore hosting, 7 ADRs, incorporates 4 rounds of Bob feedback
 - **v2 patch (2026-04-19, post-Bob-review)** — Fixed scope boundary wording (V1 = Stages 0–9); added DR targets with 4-tier RPO/RTO matrix; added storage source-of-truth matrix to remove R2/S3 ambiguity; added change-freeze policy with automatic windows; added canary + auto-rollback release gates; added PDPA cross-border transfer controls and annual Data Protection Review
 - **v2 patch 2 (2026-04-19, post-Bob-review-2)** — Resolved Malaysia migration timeline inconsistency; checkpoint is now consistently described as a Stage 10 annual evaluation (criteria review + execution both in Stage 10). Also removed a separate ADR-05 implication that Stage 3 touches the migration decision
+- **v2 patch 3 (2026-04-20, post-Bob-go-signoff)** — Four conditional-for-Stage-1 items closed: (1) PDPA 72h SLA softened to "provisional, pending counsel validation" with validation gated before Stage 9 runbook finalization; (2) added explicit Settlement Algorithm in Section 8 covering four cash-flow cases (regular, #2 discount, #1 voucher with C1/C2 implementation alternatives, subscription plan) plus daily reconciliation job with RM1/RM10 variance thresholds; ADR-06 scope expanded to cover settlement algorithm choice; (3) expanded FX failure cascade to 5 tiers with explicit degraded-mode behaviour, 7-day hard limit on stale rates, MYR-always-available guarantee; (4) added RLS Implementation Guardrails subsection with 9 mandatory controls including connection-acquisition wrapper, default-deny policies, admin-bypass auditing, runtime assertions, pen-test scenario
+- **v2 patch 4 (2026-04-20, Charlie alignment corrections)** — Three corrections per Charlie's guidance that were not yet reflected: (1) **PSP is locked as dual PSP** (Curlec/Razorpay for MYR + Stripe Connect for USD) — no longer presented as candidates; ADR-06 now documents the accepted decision at Stage 0 start; (2) **FX Tier 4 behaviour changed** from "USD checkout suspended" to "USD checkout proceeds using last-known-good rate with mandatory buyer-facing disclaimer showing rate + age" (7-day hard ceiling retained; Tier 5 is the real block); (3) **#1 platform vouchers are explicitly marked as fully BOMY-funded** — seller is commercially neutral; BOMY absorbs the full voucher amount from its own margin and can run acquisition campaigns even at net-negative on individual transactions within admin-configurable caps
 
 ## Appendix B — Glossary
 
