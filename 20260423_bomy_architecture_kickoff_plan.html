@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOMY Architecture Kickoff Plan — Stage 0 → Stage 1</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #1a1a2e;
+    background: #f8f9fb;
+    padding: 0 16px 80px;
+  }
+
+  /* ── Layout ── */
+  .page {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  /* ── Header banner ── */
+  .doc-header {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    color: #fff;
+    border-radius: 0 0 16px 16px;
+    padding: 40px 48px 36px;
+    margin-bottom: 40px;
+  }
+  .doc-header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+  .doc-header .subtitle {
+    font-size: 17px;
+    opacity: 0.85;
+    margin-bottom: 24px;
+  }
+  .doc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 13px;
+    opacity: 0.75;
+  }
+  .doc-meta span strong { opacity: 1; }
+
+  /* ── Usage callout ── */
+  .usage-callout {
+    background: #e8f4fd;
+    border-left: 4px solid #2196f3;
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 40px;
+    font-size: 14px;
+    color: #1565c0;
+  }
+  .usage-callout p { margin-bottom: 4px; }
+  .usage-callout p:last-child { margin-bottom: 0; }
+
+  /* ── Section headings ── */
+  .part-label {
+    display: inline-block;
+    background: #0f3460;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f3460;
+    margin-bottom: 24px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e0e6f0;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #16213e;
+    margin: 28px 0 12px;
+  }
+  h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+    margin: 20px 0 8px;
+  }
+
+  /* ── Section cards ── */
+  .section-card {
+    background: #fff;
+    border: 1px solid #e0e6f0;
+    border-radius: 10px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .section-card h3 { margin-top: 0; }
+
+  /* ── Status badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .badge-green  { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+  .badge-amber  { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
+  .badge-red    { background: #fce4ec; color: #c62828; border: 1px solid #ef9a9a; }
+  .badge-blue   { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 8px; border: 1px solid #e0e6f0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead th {
+    background: #f1f4f9;
+    color: #0f3460;
+    font-weight: 700;
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid #d0d9e8;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f3f8;
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) { background: #fafbfd; }
+
+  /* ── Callout / blockquote ── */
+  .callout {
+    background: #e8f4fd;
+    border-left: 4px solid #2196f3;
+    border-radius: 0 6px 6px 0;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 14px;
+    color: #1a3a5c;
+  }
+  .callout strong { color: #0d47a1; }
+  .callout-warning {
+    background: #fff8e1;
+    border-left-color: #ffa000;
+    color: #5f4100;
+  }
+  .callout-success {
+    background: #e8f5e9;
+    border-left-color: #43a047;
+    color: #1b5e20;
+  }
+
+  /* ── Code blocks ── */
+  pre {
+    background: #1e2636;
+    color: #cdd6f4;
+    border-radius: 8px;
+    padding: 18px 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 14px 0;
+    font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  }
+  code {
+    background: #f0f3f8;
+    color: #c62828;
+    font-size: 12.5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+  }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+  /* ── Checklists ── */
+  .checklist { list-style: none; padding: 0; margin: 12px 0; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 14px;
+    border-bottom: 1px solid #f5f7fb;
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    border: 2px solid #b0bec5;
+    border-radius: 4px;
+    margin-top: 2px;
+    background: #fff;
+  }
+
+  /* ── Sub-section divider ── */
+  .divider {
+    border: none;
+    border-top: 1px solid #e8ecf4;
+    margin: 32px 0;
+  }
+
+  /* ── Two-column grid ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 12px 0;
+  }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+  .info-box {
+    background: #f7f9fc;
+    border: 1px solid #dde4ef;
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .info-box .label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7986a3;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+  .info-box .value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0f3460;
+  }
+
+  /* ── ADR status row ── */
+  .adr-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f3f8;
+  }
+  .adr-row:last-child { border-bottom: none; }
+  .adr-num {
+    font-size: 12px;
+    font-weight: 800;
+    color: #0f3460;
+    background: #e8eef8;
+    border-radius: 6px;
+    padding: 4px 10px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .adr-info { flex: 1; }
+  .adr-title { font-weight: 700; font-size: 14px; color: #16213e; margin-bottom: 2px; }
+  .adr-meta { font-size: 12.5px; color: #555; }
+
+  /* ── Phase blocks ── */
+  .phase-block {
+    background: #fff;
+    border: 1px solid #e0e6f0;
+    border-left: 5px solid #0f3460;
+    border-radius: 0 10px 10px 0;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .phase-block.phase-1 { border-left-color: #1a73e8; }
+  .phase-block.phase-2 { border-left-color: #188038; }
+  .phase-block.phase-3 { border-left-color: #e37400; }
+  .phase-block.phase-4 { border-left-color: #9c27b0; }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .phase-num {
+    background: #0f3460;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+  .phase-1 .phase-num { background: #1a73e8; }
+  .phase-2 .phase-num { background: #188038; }
+  .phase-3 .phase-num { background: #e37400; }
+  .phase-4 .phase-num { background: #9c27b0; }
+
+  .phase-title { font-size: 16px; font-weight: 700; color: #16213e; }
+  .phase-week { font-size: 12px; color: #666; margin-left: auto; }
+
+  /* ── Gate checklist ── */
+  .gate-section { margin-bottom: 24px; }
+  .gate-section h4 {
+    background: #f1f4f9;
+    padding: 8px 14px;
+    border-radius: 6px;
+    margin-bottom: 0;
+    font-size: 13px;
+  }
+
+  /* ── Appendix ── */
+  .appendix-block {
+    background: #fafbfd;
+    border: 1px solid #e0e6f0;
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .appendix-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #7986a3;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+
+  /* ── Revision footer ── */
+  .revision-footer {
+    background: #f1f4f9;
+    border-top: 2px solid #d0d9e8;
+    margin-top: 60px;
+    padding: 24px 32px;
+    border-radius: 0 0 10px 10px;
+    font-size: 13px;
+    color: #555;
+  }
+
+  /* ── Print ── */
+  @media print {
+    body { background: #fff; }
+    .doc-header { border-radius: 0; }
+    .phase-block, .section-card, .appendix-block { break-inside: avoid; }
+  }
+
+  p { margin-bottom: 12px; }
+  p:last-child { margin-bottom: 0; }
+  ul, ol { padding-left: 24px; margin: 10px 0; }
+  li { margin-bottom: 4px; font-size: 14px; }
+  strong { font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ═══════════════════════════════════════════════ HEADER -->
+<div class="doc-header">
+  <h1>BOMY Architecture Kickoff Plan</h1>
+  <div class="subtitle">Stage 0 Completion &rarr; Stage 1 Preparation</div>
+  <div class="doc-meta">
+    <span><strong>Prepared by:</strong> Andy</span>
+    <span><strong>For:</strong> Charlie (Owner), Bob (Strategy/Engineering)</span>
+    <span><strong>Date:</strong> 2026-04-23</span>
+    <span><strong>Status:</strong> Active Planning</span>
+    <span><strong>Builds on:</strong> Proposal v2 (2026-04-19)</span>
+  </div>
+</div>
+
+<div class="usage-callout">
+  <p><strong>How to use this document</strong></p>
+  <p>
+    <strong>Part 1</strong> locks all open decisions from Proposal v2 Section 22. &nbsp;|&nbsp;
+    <strong>Part 2</strong> maps the ADR backlog to owners and next actions. &nbsp;|&nbsp;
+    <strong>Part 3</strong> is a pre-code checklist — every item here must be ticked before a single line of production code is written. &nbsp;|&nbsp;
+    <strong>Part 4</strong> shows the architecture setup phases in order. &nbsp;|&nbsp;
+    <strong>Part 5</strong> is the Stage 1 launch gate.
+  </p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ PART 1 -->
+<div class="part-label">Part 1</div>
+<h2>Locked Decisions from Q&amp;A</h2>
+<p style="font-size:14px; color:#555; margin-bottom:24px;">All 10 open questions from Proposal v2 Section 22 are now answered and locked below.</p>
+
+<!-- 1.1 -->
+<div class="section-card">
+  <h3>1.1 Shipping Partner — ADR-01 &nbsp;<span class="badge badge-green">✅ Locked</span></h3>
+  <div class="two-col">
+    <div class="info-box"><div class="label">Stage 1 Courier</div><div class="value">Pos Laju Malaysia</div></div>
+    <div class="info-box"><div class="label">Model</div><div class="value">Seller-managed, Pos Laju recommended default</div></div>
+    <div class="info-box"><div class="label">Goodie Box</div><div class="value">BOMY-operated via Pos Laju business account</div></div>
+    <div class="info-box"><div class="label">Later Stages</div><div class="value">Re-evaluate J&amp;T Express, DHL by volume</div></div>
+  </div>
+  <div class="callout" style="margin-top:14px;">
+    <strong>ADR-01 direction:</strong> Seller-managed model at Stage 1 — sellers manage their own Pos Laju account and waybill generation. BOMY provides tracking display only. Goodie Box shipments are BOMY-operated directly.
+  </div>
+</div>
+
+<!-- 1.2 -->
+<div class="section-card">
+  <h3>1.2 Support Tooling — ADR-02 &nbsp;<span class="badge badge-green">✅ Locked</span> <small style="font-weight:400; color:#888;">(Andy's Recommendation)</small></h3>
+  <h4>Recommendation: Freshdesk (Growth Plan) + Freshchat</h4>
+  <p style="font-size:14px;">BOMY's primary support workflows are: return dispute resolution (2–3 day SLA), brand onboarding support, Goodie Box delivery queries, and membership billing queries. Freshdesk excels at ticket-based, multi-party dispute flows.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Factor</th><th>Freshdesk ✅</th><th>Zendesk</th><th>Intercom</th></tr></thead>
+      <tbody>
+        <tr><td>Cost per agent/month</td><td><strong>~RM70 (Growth)</strong></td><td>~RM250 (Suite Team)</td><td>~RM340 (Pro)</td></tr>
+        <tr><td>Return/dispute workflows</td><td><strong>Strong</strong></td><td>Excellent</td><td>Average</td></tr>
+        <tr><td>Multi-party tickets</td><td>Yes</td><td>Yes</td><td>Limited</td></tr>
+        <tr><td>SLA rules &amp; escalation</td><td>Yes</td><td>Yes</td><td>Limited</td></tr>
+        <tr><td>WhatsApp Business (key for MY)</td><td>Yes</td><td>Yes</td><td>Paid add-on</td></tr>
+        <tr><td>API for order integration</td><td>Good</td><td>Excellent</td><td>Good</td></tr>
+        <tr><td>Live chat widget</td><td>Freshchat (bundled)</td><td>Zendesk Chat</td><td>Core product</td></tr>
+        <tr><td>Setup complexity</td><td>Low</td><td>Medium</td><td>Low</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>Migration path:</strong> If dispute volume exceeds 500 tickets/month or multi-brand workflows become complex, migrate to Zendesk Suite. Freshdesk ticket export is clean and migration is low-risk.<br>
+    <strong>Integration path:</strong> Freshdesk webhook → BOMY API → order/return status sync (Stage 7).
+  </div>
+</div>
+
+<!-- 1.3 -->
+<div class="section-card">
+  <h3>1.3 Commission Model — ADR-03 &nbsp;<span class="badge badge-green">✅ Locked</span></h3>
+  <div class="two-col">
+    <div class="info-box"><div class="label">Model</div><div class="value">Uniform flat 25%</div></div>
+    <div class="info-box"><div class="label">Across categories</div><div class="value">All categories, no exceptions at V1</div></div>
+    <div class="info-box"><div class="label">Brand subscription</div><div class="value">10% (pre-locked in Proposal v2)</div></div>
+    <div class="info-box"><div class="label">Future flexibility</div><div class="value">Category override field reserved in schema</div></div>
+  </div>
+  <div class="callout" style="margin-top:14px;">
+    <strong>ADR-03 schema note:</strong> The order table will carry a nullable <code>commission_category_override_pct</code> field. Always null at V1. This costs nothing now and avoids a future migration if tiered commissions are ever needed.
+  </div>
+</div>
+
+<!-- 1.4 -->
+<div class="section-card">
+  <h3>1.4 Brand Vetting Criteria &nbsp;<span class="badge badge-green">✅ Locked</span></h3>
+  <p style="font-size:14px; margin-bottom:14px;">Every brand applying to BOMY Consortium must meet <strong>all five criteria:</strong></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Criterion</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Brand must be <strong>first registered in Malaysia</strong> (SSM registration required)</td></tr>
+        <tr><td>2</td><td>Product must be <strong>at least 50% made in Malaysia</strong></td></tr>
+        <tr><td>3</td><td>Must be <strong>owned by at least 1 Malaysian citizen or Permanent Resident</strong></td></tr>
+        <tr><td>4</td><td>BOMY deals <strong>only with the owner, founder, co-founder, family inheritor, or authorised person in charge</strong> of the brand — no agents, distributors, or resellers</td></tr>
+        <tr><td>5</td><td><strong>No multi-level marketing (MLM) structure</strong> allowed on the platform</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout callout-warning" style="margin-top:14px;">
+    <strong>Approval process:</strong> Final approval requires <strong>unanimous agreement from 4 designated stakeholders.</strong> Charlie to confirm the 4 roles (e.g. Charlie, Bob, Ops Lead, Finance Lead). A single veto blocks approval — no brand is listed without all 4 approvals. This is enforced in the admin workflow, not left to convention.
+  </div>
+</div>
+
+<!-- 1.5 -->
+<div class="section-card">
+  <h3>1.5 Platform Membership (#1) — Updated Pricing &amp; Benefits &nbsp;<span class="badge badge-green">✅ Locked</span></h3>
+  <div class="callout callout-warning">
+    <strong>Price updated: RM59/year → RM75/year.</strong> Admin config key: <code>platform_membership_price_myr_sen</code> = 7500.
+  </div>
+  <h4 style="margin-top:18px;">Updated #1 Membership Benefits</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Benefit</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>🎁 <strong>Annual Starter Kit</strong></td><td>1× per year, same curated items for <em>all</em> #1 members that year (standardised, BOMY-operated)</td></tr>
+        <tr><td>📦 <strong>Quarterly Goodie Box</strong></td><td>4× per year, curated sample box shipped from BOMY HQ</td></tr>
+        <tr><td>🎟 <strong>Monthly Platform Voucher</strong></td><td>Platform-wide, BOMY-funded, admin-configurable type/amount</td></tr>
+        <tr><td>📅 <strong>Priority Event Access</strong></td><td>Early/priority RSVP for all BOMY events</td></tr>
+        <tr><td>🔔 <strong>Early Launch Notifications</strong></td><td>New brand/product drops surfaced ahead of public</td></tr>
+        <tr><td>💬 <strong>Feedback Community Access</strong></td><td>Gated private forum for #1 members only</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout" style="margin-top:14px;">
+    <strong>Naming clarification — two different "kits":</strong><br>
+    • <strong>#1 Annual Starter Kit</strong> — standardised same-items-for-all, once per year, included in RM75/yr, BOMY-operated<br>
+    • <strong>#2 Brand Welcome Kit</strong> — brand-curated welcome shipment when joining a brand subscription (one-off, brand-operated, unchanged from Proposal v2)<br>
+    These are distinct products. Use <code>platform_starter_kit</code> vs <code>brand_welcome_kit</code> in the codebase.
+  </div>
+</div>
+
+<!-- 1.6 -->
+<div class="section-card">
+  <h3>1.6 Consumer Tier Naming &nbsp;<span class="badge badge-amber">⏳ Charlie to Confirm</span></h3>
+  <p style="font-size:14px; margin-bottom:14px;">Charlie suggested <strong>"Egg Tier"</strong> and asked Andy for input. Four options:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Option</th><th>Name</th><th>Rationale</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td><strong>Egg Tier</strong></td><td>Direct, ties to the mascot. Works if BOMY brand is playful/quirky.</td><td>Simple, memorable, on-brand for the egg avatar</td></tr>
+        <tr><td>B</td><td><strong>BOMY Insider</strong></td><td>Conveys exclusivity and early access. Professional without being corporate.</td><td>Strong for premium feel</td></tr>
+        <tr><td>C</td><td><strong>BOMY Collective Member</strong></td><td>Aligns with the Consortium/Collective brand language.</td><td>Most strategic, but long</td></tr>
+        <tr><td>D</td><td><strong>BOMY Circle</strong></td><td>Warm, community-first. Implies belonging.</td><td>Great if community forum is a core pull</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout callout-success">
+    <strong>Andy's pick: Option A — Egg Tier.</strong> Lean into the mascot. The egg avatar is the most distinctive thing BOMY has that no other platform does. The marketing line writes itself: <em>"Hatch your membership. Unlock BOMY."</em>
+    <br><strong>Action:</strong> Charlie to confirm before Stage 3. Update <code>platform_membership_tier_display_name</code> in admin config.
+  </div>
+</div>
+
+<!-- 1.7 + 1.8 -->
+<div class="section-card">
+  <h3>1.7 Events Operations &nbsp;<span class="badge badge-green">✅ Locked</span></h3>
+  <div class="two-col">
+    <div class="info-box"><div class="label">Events hosting</div><div class="value">In-house, managed by BOMY Team</div></div>
+    <div class="info-box"><div class="label">Physical events</div><div class="value">BOMY team arranges venue, logistics, RSVPs</div></div>
+    <div class="info-box"><div class="label">Digital events</div><div class="value">BOMY team selects platform (Zoom/Luma/similar)</div></div>
+    <div class="info-box"><div class="label">Seller events</div><div class="value">Seller-created, BOMY approves + publishes</div></div>
+  </div>
+</div>
+
+<div class="section-card">
+  <h3>1.8 Brand RM899/Year — Payment Trigger &nbsp;<span class="badge badge-green">✅ Locked</span></h3>
+  <div class="two-col">
+    <div class="info-box"><div class="label">When brand pays</div><div class="value">On first product listing after full company details uploaded</div></div>
+    <div class="info-box"><div class="label">Gate</div><div class="value">All 4 conditions must pass before listing goes live</div></div>
+  </div>
+  <ul style="margin-top:14px; font-size:14px;">
+    <li>All company info uploaded ✓</li>
+    <li>SSM registration verified ✓</li>
+    <li>Vetting approved by 4 stakeholders ✓</li>
+    <li>RM899/yr payment confirmed ✓</li>
+  </ul>
+</div>
+
+<!-- 1.9 -->
+<div class="section-card">
+  <h3>1.9 Language &amp; Localisation Roadmap &nbsp;<span class="badge badge-green">✅ Locked</span></h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Phase</th><th>Language</th><th>When</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge badge-blue">Launch</span></td><td>English (EN)</td><td>Stage 9 (go-live)</td></tr>
+        <tr><td><span class="badge badge-amber">V1</span></td><td>Bahasa Melayu (BM)</td><td>Post-launch, first i18n update</td></tr>
+        <tr><td><span class="badge badge-amber">V2</span></td><td>Mandarin Chinese (ZH)</td><td>Following BM</td></tr>
+        <tr><td>V3+</td><td>All other languages</td><td>As BOMY expands — more languages = better</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout" style="margin-top:14px;">
+    <strong>Architecture requirement (Stage 1):</strong> i18n must be built in from day one using <strong>next-intl</strong> (purpose-built for Next.js 15, supports RSC, App Router, TypeScript-first). Every user-facing string goes through the i18n layer from the first commit — no hardcoded English strings in components. Message files: <code>apps/web/messages/en.json</code> → <code>bm.json</code> → <code>zh.json</code> as each phase unlocks.
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ PART 2 -->
+<hr class="divider">
+<div class="part-label">Part 2</div>
+<h2>ADR Backlog — Status &amp; Next Actions</h2>
+<p style="font-size:14px; color:#555; margin-bottom:24px;">Each ADR must be written as a markdown file in <code>/docs/adrs/NNNN-short-title.md</code> before Stage 1 starts.</p>
+
+<div class="section-card">
+  <div class="adr-row">
+    <div class="adr-num">ADR-01</div>
+    <div class="adr-info">
+      <div class="adr-title">Shipping Model</div>
+      <div class="adr-meta">Owner: Bob &nbsp;|&nbsp; Due: Stage 0 W1 &nbsp;|&nbsp; <span class="badge badge-green">✅ Decision locked — ready to write</span></div>
+    </div>
+  </div>
+  <div class="adr-row">
+    <div class="adr-num">ADR-02</div>
+    <div class="adr-info">
+      <div class="adr-title">Support Tooling</div>
+      <div class="adr-meta">Owner: Charlie &nbsp;|&nbsp; Due: Stage 0 W2 &nbsp;|&nbsp; <span class="badge badge-green">✅ Decision locked — ready to write</span></div>
+    </div>
+  </div>
+  <div class="adr-row">
+    <div class="adr-num">ADR-03</div>
+    <div class="adr-info">
+      <div class="adr-title">Commission Model</div>
+      <div class="adr-meta">Owner: Andy &nbsp;|&nbsp; Due: Stage 0 W2 &nbsp;|&nbsp; <span class="badge badge-green">✅ Decision locked — ready to write</span></div>
+    </div>
+  </div>
+  <div class="adr-row">
+    <div class="adr-num">ADR-04</div>
+    <div class="adr-info">
+      <div class="adr-title">Return Shipping Default</div>
+      <div class="adr-meta">Owner: Bob &nbsp;|&nbsp; Due: Stage 0 W3 &nbsp;|&nbsp; <span class="badge badge-amber">⏳ Fault matrix detail needed</span></div>
+    </div>
+  </div>
+  <div class="adr-row">
+    <div class="adr-num">ADR-05</div>
+    <div class="adr-info">
+      <div class="adr-title">Hosting / Data Residency</div>
+      <div class="adr-meta">Owner: Andy &nbsp;|&nbsp; Due: Stage 0 W3 &nbsp;|&nbsp; <span class="badge badge-green">✅ Decision locked — ready to write</span></div>
+    </div>
+  </div>
+  <div class="adr-row">
+    <div class="adr-num">ADR-06</div>
+    <div class="adr-info">
+      <div class="adr-title">PSP Choice &amp; Settlement Algorithm</div>
+      <div class="adr-meta">Owner: Andy + Bob &nbsp;|&nbsp; Due: Stage 0 W4 &nbsp;|&nbsp; <span class="badge badge-green">✅ Core locked in Proposal v2 — settlement detail needed</span></div>
+    </div>
+  </div>
+  <div class="adr-row">
+    <div class="adr-num">ADR-07</div>
+    <div class="adr-info">
+      <div class="adr-title">Wallet Architecture</div>
+      <div class="adr-meta">Owner: Andy &nbsp;|&nbsp; Due: Stage 0 W4 &nbsp;|&nbsp; <span class="badge badge-amber">⏳ Ledger schema detail needed</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="callout callout-warning">
+  <strong>ADR-04 open point — return shipping cost matrix (Charlie/Bob to confirm):</strong>
+  <table style="margin-top:10px; background:transparent; font-size:13px; width:100%;">
+    <tr><td>Wrong item sent</td><td>→ <strong>Seller pays</strong></td></tr>
+    <tr><td>Defective item</td><td>→ <strong>Seller pays</strong></td></tr>
+    <tr><td>Item not as shown</td><td>→ Case-by-case (BOMY decides)</td></tr>
+    <tr><td>Buyer bought wrong item</td><td>→ <strong>Buyer pays</strong></td></tr>
+    <tr><td>Buyer doesn't like item</td><td>→ <strong>Buyer pays</strong></td></tr>
+    <tr><td>Other reason</td><td>→ Case-by-case (BOMY decides)</td></tr>
+  </table>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ PART 3 -->
+<hr class="divider">
+<div class="part-label">Part 3</div>
+<h2>Pre-Architecture Preparation Checklist</h2>
+<p style="font-size:14px; color:#555; margin-bottom:24px;">Everything below must be completed before Stage 1 development starts. Four tracks.</p>
+
+<!-- Track A -->
+<div class="section-card">
+  <h3>Track A — Legal &amp; Compliance</h3>
+  <ul class="checklist">
+    <li><span class="checkbox"></span><span>SSM company registration — BOMY entity registered in Malaysia</span></li>
+    <li><span class="checkbox"></span><span>Business bank account — BOMY business bank account opened</span></li>
+    <li><span class="checkbox"></span><span>DPO (Data Protection Officer) role assigned — required for PDPA Act 709</span></li>
+    <li><span class="checkbox"></span><span>Privacy Policy drafted — must include cross-border data transfer consent (Singapore hosting)</span></li>
+    <li><span class="checkbox"></span><span>Terms &amp; Conditions drafted — covers buyer, seller, and platform obligations</span></li>
+    <li><span class="checkbox"></span><span>Refund Policy page drafted — verbatim from Proposal v2 Section 5</span></li>
+    <li><span class="checkbox"></span><span>SST registration assessed — consult tax advisor on SST obligations</span></li>
+    <li><span class="checkbox"></span><span>Legal counsel engaged — for PDPA 72h breach notification SLA validation (start search now; required before Stage 9)</span></li>
+    <li><span class="checkbox"></span><span>Brand vetting declaration template — document for brand founders to sign</span></li>
+    <li><span class="checkbox"></span><span>4 stakeholders named — confirm the 4 individuals on the brand approval committee</span></li>
+  </ul>
+</div>
+
+<!-- Track B -->
+<div class="section-card">
+  <h3>Track B — Business Accounts &amp; Services</h3>
+  <h4>PSP Accounts <span style="font-weight:400; color:#888;">(start immediately after SSM — takes 1–3 weeks)</span></h4>
+  <ul class="checklist">
+    <li><span class="checkbox"></span><span>Curlec / Razorpay Route account — apply for merchant account (MYR, FPX, DuitNow)</span></li>
+    <li><span class="checkbox"></span><span>Stripe Connect account — apply for platform account (USD)</span></li>
+  </ul>
+  <h4>Communications &amp; Support</h4>
+  <ul class="checklist">
+    <li><span class="checkbox"></span><span>Freshdesk account — sign up, configure Growth plan; set up return dispute queue and SLA rules</span></li>
+    <li><span class="checkbox"></span><span>Freshchat — configure live chat widget (deployed in Stage 3/4)</span></li>
+    <li><span class="checkbox"></span><span>SendGrid account — transactional email (order confirmations, membership renewals, OTPs)</span></li>
+    <li><span class="checkbox"></span><span>Twilio account — SMS OTP for auth recovery; Malaysia phone number</span></li>
+    <li><span class="checkbox"></span><span>Firebase project — for FCM push notifications</span></li>
+  </ul>
+  <h4>Media, Storage &amp; Domain</h4>
+  <ul class="checklist">
+    <li><span class="checkbox"></span><span>Cloudflare account — set up R2 bucket for product images + logos; configure WAF</span></li>
+    <li><span class="checkbox"></span><span>Cloudinary account — seller homepage video transcoding</span></li>
+    <li><span class="checkbox"></span><span>Domain(s) purchased — <code>bomy.com.my</code> (primary) + <code>bomy.co</code> or <code>bomy.shop</code> (secondary); DNS moved to Cloudflare</span></li>
+  </ul>
+  <h4>Observability</h4>
+  <ul class="checklist">
+    <li><span class="checkbox"></span><span>Grafana Cloud account — free tier for Stage 1; upgrade at Stage 8</span></li>
+    <li><span class="checkbox"></span><span>Sentry organisation — create <code>bomy-web</code> and <code>bomy-api</code> projects</span></li>
+  </ul>
+</div>
+
+<!-- Track C -->
+<div class="section-card">
+  <h3>Track C — Technical Accounts &amp; Infrastructure</h3>
+  <h4>AWS Setup</h4>
+  <ul class="checklist">
+    <li><span class="checkbox"></span><span>AWS Organisations — create 4 accounts: <code>bomy-prod</code>, <code>bomy-staging</code>, <code>bomy-dev</code>, <code>bomy-infra</code></span></li>
+    <li><span class="checkbox"></span><span>AWS Budgets — monthly spend alerts on all 4 accounts</span></li>
+    <li><span class="checkbox"></span><span>AWS KMS — create CMKs in <code>ap-southeast-1</code> for PII column encryption</span></li>
+    <li><span class="checkbox"></span><span>AWS Secrets Manager — baseline secret structure defined</span></li>
+    <li><span class="checkbox"></span><span>S3 Object Lock bucket — in <code>bomy-infra</code>, for audit logs + financial evidence</span></li>
+    <li><span class="checkbox"></span><span>S3 Terraform state bucket — versioned, DynamoDB lock table</span></li>
+  </ul>
+  <h4>GitHub</h4>
+  <ul class="checklist">
+    <li><span class="checkbox"></span><span>GitHub organisation created — <code>bomy-consortium</code></span></li>
+    <li><span class="checkbox"></span><span>Monorepo created — <code>bomy-platform</code></span></li>
+    <li><span class="checkbox"></span><span>Branch protection rules — on <code>main</code>: require PR + 1 review + CI pass + no direct push</span></li>
+    <li><span class="checkbox"></span><span>GitHub Secrets — <code>AWS_ROLE_ARN</code> for OIDC (no long-lived keys)</span></li>
+    <li><span class="checkbox"></span><span>CODEOWNERS file — assign ownership per package/app</span></li>
+  </ul>
+</div>
+
+<!-- Track D -->
+<div class="section-card">
+  <h3>Track D — Team &amp; Process</h3>
+  <ul class="checklist">
+    <li><span class="checkbox"></span><span>On-call rotation defined — who is on-call for Tier 1 incidents at launch</span></li>
+    <li><span class="checkbox"></span><span>Runbook template created — base format for all Tier 1 incident scenarios</span></li>
+    <li><span class="checkbox"></span><span>Slack workspace — channels: <code>#bomy-dev</code>, <code>#bomy-ops</code>, <code>#bomy-deploys</code>, <code>#bomy-alerts</code></span></li>
+    <li><span class="checkbox"></span><span>ADR-04 fault matrix confirmed — Charlie/Bob to approve return shipping cost matrix</span></li>
+    <li><span class="checkbox"></span><span>4 brand approval stakeholders named — Charlie to confirm</span></li>
+    <li><span class="checkbox"></span><span>Consumer tier name confirmed — Charlie to approve from Section 1.6 options</span></li>
+    <li><span class="checkbox"></span><span>Annual Starter Kit content decided — define Year 1 kit contents before Stage 6</span></li>
+    <li><span class="checkbox"></span><span>Pos Laju business account opened — for Goodie Box shipping</span></li>
+  </ul>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ PART 4 -->
+<hr class="divider">
+<div class="part-label">Part 4</div>
+<h2>Architecture Setup Phases</h2>
+<p style="font-size:14px; color:#555; margin-bottom:24px;">Four phases of technical setup before production feature development begins. Each phase has a clear output.</p>
+
+<!-- Phase 0 -->
+<div class="phase-block phase-1">
+  <div class="phase-header">
+    <span class="phase-num">Phase 0</span>
+    <span class="phase-title">ADR Documents &amp; Documentation Foundation</span>
+    <span class="phase-week">Week 1–2</span>
+  </div>
+  <p style="font-size:14px; margin-bottom:16px;"><strong>Goal:</strong> All 7 ADRs written and accepted. Documentation structure in place.</p>
+  <h4>Directory structure to create</h4>
+<pre>bomy-platform/
+├── docs/
+│   ├── adrs/
+│   │   ├── 0001-shipping-model.md
+│   │   ├── 0002-support-tooling.md
+│   │   ├── 0003-commission-model.md
+│   │   ├── 0004-return-shipping-default.md
+│   │   ├── 0005-hosting-data-residency.md
+│   │   ├── 0006-psp-settlement-algorithm.md
+│   │   └── 0007-wallet-architecture.md
+│   ├── threat-model.md
+│   ├── compliance-gap-list.md
+│   ├── data-classification.md
+│   └── third-party-risk-register.md
+└── README.md</pre>
+  <h4>Each ADR file template</h4>
+<pre># ADR-NNNN: [Title]
+
+**Date:** YYYY-MM-DD
+**Status:** Proposed | Accepted | Superseded | Deprecated
+**Owner:** [Name]
+**Supersedes:** (none) | ADR-XXXX
+
+## Context
+[The problem, constraints, and forces at play]
+
+## Decision
+[What we chose]
+
+## Consequences
+[Trade-offs, what this locks us into, what remains open]</pre>
+  <div class="callout callout-success"><strong>Deliverable:</strong> <code>/docs/adrs/</code> with all 7 ADRs marked <strong>Accepted</strong>.</div>
+</div>
+
+<!-- Phase 1 -->
+<div class="phase-block phase-2">
+  <div class="phase-header">
+    <span class="phase-num">Phase 1</span>
+    <span class="phase-title">Monorepo Bootstrap</span>
+    <span class="phase-week">Week 2–3</span>
+  </div>
+  <p style="font-size:14px; margin-bottom:16px;"><strong>Goal:</strong> Monorepo skeleton with correct structure, TypeScript config, and working build.</p>
+  <h4>Approved monorepo layout</h4>
+<pre>bomy-platform/
+├── apps/
+│   ├── web/          ← Next.js 15 + TypeScript + Tailwind + shadcn/ui
+│   ├── api/          ← Fastify + TypeScript (modular monolith)
+│   └── admin/        ← Next.js 15 admin panel
+├── packages/
+│   ├── db/           ← Drizzle ORM + schema + migrations
+│   ├── config/       ← Shared TypeScript + ESLint + Tailwind config
+│   ├── ui/           ← shadcn/ui component library (shared)
+│   ├── shared/       ← Shared types, Zod schemas, constants
+│   └── otel/         ← OpenTelemetry setup + instrumentation
+├── infra/
+│   └── docker/       ← docker-compose for local dev
+├── docs/
+│   └── adrs/
+├── .github/
+│   └── workflows/
+├── turbo.json
+├── package.json      ← pnpm workspaces
+└── README.md</pre>
+  <h4>Key setup decisions</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Item</th><th>Choice</th></tr></thead>
+      <tbody>
+        <tr><td>Package manager</td><td>pnpm (workspaces)</td></tr>
+        <tr><td>Build orchestration</td><td>Turborepo</td></tr>
+        <tr><td>Node version</td><td>20 LTS (<code>.nvmrc</code> + <code>.tool-versions</code>)</td></tr>
+        <tr><td>TypeScript</td><td>Strict mode across all packages</td></tr>
+        <tr><td>Linting</td><td>ESLint + Prettier (shared config in <code>packages/config</code>)</td></tr>
+        <tr><td>i18n</td><td><code>next-intl</code> installed in <code>apps/web</code> from day one; <code>messages/en.json</code> created immediately</td></tr>
+        <tr><td>Env vars</td><td><code>packages/config/env.ts</code> — Zod-validated env schema, no raw <code>process.env</code> in app code</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout callout-success"><strong>Deliverable:</strong> <code>git clone &amp;&amp; pnpm install &amp;&amp; pnpm build</code> succeeds. All apps start with <code>pnpm dev</code>.</div>
+</div>
+
+<!-- Phase 2 -->
+<div class="phase-block phase-3">
+  <div class="phase-header">
+    <span class="phase-num">Phase 2</span>
+    <span class="phase-title">AWS Infrastructure via Terraform</span>
+    <span class="phase-week">Week 3–4</span>
+  </div>
+  <p style="font-size:14px; margin-bottom:16px;"><strong>Goal:</strong> All cloud infrastructure declared in Terraform, staging environment running.</p>
+  <h4>Terraform module structure</h4>
+<pre>infra/
+├── terraform/
+│   ├── modules/
+│   │   ├── vpc/           ← VPC, subnets, security groups
+│   │   ├── rds/           ← PostgreSQL 16 Multi-AZ
+│   │   ├── elasticache/   ← Redis cluster
+│   │   ├── ecs/           ← Fargate task definitions
+│   │   ├── alb/           ← Application Load Balancer
+│   │   ├── s3/            ← Buckets (audit, KYC, state)
+│   │   ├── kms/           ← Customer managed keys
+│   │   └── secrets/       ← Secrets Manager baseline
+│   ├── envs/
+│   │   ├── staging/       ← First environment to provision
+│   │   └── prod/          ← Provisioned at Stage 9 only
+│   └── shared/            ← Terraform state bucket, OIDC role</pre>
+  <h4>Staging environment components</h4>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Component</th><th>Service</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Compute</td><td>ECS Fargate</td><td><code>api</code> service, 0.5 vCPU / 1GB to start</td></tr>
+        <tr><td>Database</td><td>RDS PostgreSQL 16</td><td><code>db.t3.medium</code>, Multi-AZ OFF in staging, ON in prod</td></tr>
+        <tr><td>Cache</td><td>ElastiCache Redis</td><td><code>cache.t3.micro</code> in staging</td></tr>
+        <tr><td>Object storage</td><td>Cloudflare R2</td><td>Configured via Cloudflare provider</td></tr>
+        <tr><td>CDN/WAF</td><td>Cloudflare</td><td>Zone created, basic WAF rules</td></tr>
+        <tr><td>Secrets</td><td>AWS Secrets Manager</td><td>All app secrets stored here</td></tr>
+        <tr><td>Encryption</td><td>AWS KMS</td><td>1 CMK per environment</td></tr>
+        <tr><td>DNS</td><td>Cloudflare</td><td><code>staging.bomy.com.my</code> → ALB</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout callout-success"><strong>Deliverable:</strong> <code>terraform apply</code> provisions staging. <code>https://staging.bomy.com.my</code> resolves and returns a health check response.</div>
+</div>
+
+<!-- Phase 3 -->
+<div class="phase-block phase-4">
+  <div class="phase-header">
+    <span class="phase-num">Phase 3</span>
+    <span class="phase-title">CI/CD Pipelines &amp; Developer Experience</span>
+    <span class="phase-week">Week 4–5</span>
+  </div>
+  <p style="font-size:14px; margin-bottom:16px;"><strong>Goal:</strong> Full CI/CD pipeline running on every PR and push to <code>main</code>.</p>
+  <h4>Pipeline stages</h4>
+<pre>Push to branch
+    ↓
+[ Lint &amp; Type Check ]     ← ESLint, tsc --noEmit (all packages)
+    ↓
+[ Unit Tests ]            ← Vitest (fast, parallel)
+    ↓
+[ Integration Tests ]     ← Drizzle + real PostgreSQL (Docker)
+    ↓
+[ Build ]                 ← turborepo build all apps
+    ↓
+[ Security Scan ]         ← npm audit + Trivy for Docker images
+    ↓
+[ Deploy to Staging ]     ← on merge to main only
+    ↓
+[ Smoke Tests ]           ← 3–5 critical path checks post-deploy</pre>
+  <h4>Database migrations workflow</h4>
+<pre>pnpm db:generate    # drizzle-kit generate (creates migration file)
+pnpm db:migrate     # drizzle-kit migrate (applies to local)
+pnpm db:studio      # Drizzle Studio for local inspection</pre>
+  <div class="callout callout-success"><strong>Deliverable:</strong> Every PR runs the full pipeline in under 5 minutes. Merge to <code>main</code> auto-deploys to staging.</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ PART 5 -->
+<hr class="divider">
+<div class="part-label">Part 5</div>
+<h2>Stage 1 Readiness Gate</h2>
+<p style="font-size:14px; color:#555; margin-bottom:24px;">Stage 1 development cannot start until every item below is checked off.</p>
+
+<div class="section-card">
+  <div class="gate-section">
+    <h4>Legal &amp; Business</h4>
+    <ul class="checklist">
+      <li><span class="checkbox"></span><span>SSM registration complete</span></li>
+      <li><span class="checkbox"></span><span>Business bank account open</span></li>
+      <li><span class="checkbox"></span><span>DPO role assigned</span></li>
+      <li><span class="checkbox"></span><span>Privacy Policy + T&amp;C drafted</span></li>
+      <li><span class="checkbox"></span><span>PSP applications submitted (Curlec + Stripe)</span></li>
+      <li><span class="checkbox"></span><span>4 brand approval stakeholders named and confirmed</span></li>
+    </ul>
+  </div>
+  <div class="gate-section" style="margin-top:20px;">
+    <h4>Technical Infrastructure</h4>
+    <ul class="checklist">
+      <li><span class="checkbox"></span><span>AWS Organisations: 4 accounts created</span></li>
+      <li><span class="checkbox"></span><span>Terraform state bucket and DynamoDB lock table provisioned</span></li>
+      <li><span class="checkbox"></span><span>GitHub organisation and monorepo created</span></li>
+      <li><span class="checkbox"></span><span>Branch protection rules active on <code>main</code></span></li>
+      <li><span class="checkbox"></span><span>Staging environment provisioned via Terraform</span></li>
+      <li><span class="checkbox"></span><span>GitHub Actions OIDC to AWS working (no long-lived keys)</span></li>
+      <li><span class="checkbox"></span><span>CI pipeline running on every PR (lint + type check + test + build)</span></li>
+    </ul>
+  </div>
+  <div class="gate-section" style="margin-top:20px;">
+    <h4>Documentation</h4>
+    <ul class="checklist">
+      <li><span class="checkbox"></span><span>All 7 ADRs written and marked <strong>Accepted</strong></span></li>
+      <li><span class="checkbox"></span><span>Threat model document created</span></li>
+      <li><span class="checkbox"></span><span>Data classification document created</span></li>
+      <li><span class="checkbox"></span><span>Third-party risk register filled</span></li>
+      <li><span class="checkbox"></span><span>Return shipping cost matrix confirmed (ADR-04)</span></li>
+    </ul>
+  </div>
+  <div class="gate-section" style="margin-top:20px;">
+    <h4>Product Decisions</h4>
+    <ul class="checklist">
+      <li><span class="checkbox"></span><span>Consumer tier name confirmed</span></li>
+      <li><span class="checkbox"></span><span>Annual Starter Kit contents for Year 1 decided (or flagged as TBD for Stage 6)</span></li>
+      <li><span class="checkbox"></span><span>Pos Laju business account opened</span></li>
+      <li><span class="checkbox"></span><span>Freshdesk account configured with return dispute queue</span></li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ APPENDICES -->
+<hr class="divider">
+<h2>Appendices</h2>
+
+<div class="appendix-block">
+  <div class="appendix-label">Appendix A</div>
+  <h3 style="margin-top:6px;">i18n Architecture Note</h3>
+  <p style="font-size:14px;">The language roadmap (EN → BM → ZH → Others) requires this pattern from day one:</p>
+<pre>apps/web/
+└── messages/
+    ├── en.json          ← Launch
+    ├── bm.json          ← V1 post-launch
+    ├── zh.json          ← V2
+    └── [locale].json    ← V3+</pre>
+  <p style="font-size:14px; margin-top:12px;">Every user-facing string is a key, never hardcoded:</p>
+<pre>// ✅ Correct
+const t = useTranslations('checkout')
+return &lt;h1&gt;{t('title')}&lt;/h1&gt;
+
+// ❌ Wrong — hardcoded, untranslatable
+return &lt;h1&gt;Checkout&lt;/h1&gt;</pre>
+  <p style="font-size:14px; margin-top:12px;">Namespace structure mirrors site IA: <code>common</code>, <code>checkout</code>, <code>account</code>, <code>seller</code>, <code>admin</code>, <code>membership</code>.</p>
+</div>
+
+<div class="appendix-block">
+  <div class="appendix-label">Appendix B</div>
+  <h3 style="margin-top:6px;">Commission Field Design (ADR-03 Note)</h3>
+<pre>// packages/db/schema/orders.ts
+export const orders = pgTable('orders', {
+  // ...
+  commissionPct: integer('commission_pct').notNull(),
+  commissionCategoryOverridePct: integer('commission_category_override_pct'), // nullable
+  revenueSource: revenueSourceEnum('revenue_source').notNull(),
+  // ...
+})</pre>
+  <p style="font-size:14px; margin-top:10px;">Stage 1: <code>commission_category_override_pct</code> is always null. Stage 10+: admin can set per-category overrides without a schema migration.</p>
+</div>
+
+<div class="appendix-block">
+  <div class="appendix-label">Appendix C</div>
+  <h3 style="margin-top:6px;">Brand Vetting Database Design (Stage 2 Note)</h3>
+<pre>// packages/db/schema/brandVetting.ts
+export const brandVettingApplications = pgTable('brand_vetting_applications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  brandId: uuid('brand_id').references(() =&gt; brands.id),
+  ssmRegistrationNumber: text('ssm_registration_number').notNull(),
+  madeInMalaysiaPercentage: integer('made_in_malaysia_pct').notNull(), // &gt;= 50
+  ownerIsMalaysian: boolean('owner_is_malaysian').notNull(),
+  contactRole: contactRoleEnum('contact_role').notNull(),
+  noMlmDeclaration: boolean('no_mlm_declaration').notNull(),
+  submittedAt: timestamp('submitted_at').notNull().defaultNow(),
+  // 4 stakeholder votes (null = not yet voted)
+  vote1StakeholderId: uuid('vote1_stakeholder_id').references(() =&gt; users.id),
+  vote1Decision: voteDecisionEnum('vote1_decision'), // approve/reject/abstain
+  vote1At: timestamp('vote1_at'),
+  // ... vote2, vote3, vote4 same pattern ...
+  finalStatus: vettingStatusEnum('final_status').default('pending'),
+  finalAt: timestamp('final_at'),
+})
+// Approved only when all 4 votes = 'approve'</pre>
+</div>
+
+<div class="appendix-block">
+  <div class="appendix-label">Appendix D</div>
+  <h3 style="margin-top:6px;">Pos Laju Integration Notes (Stage 3)</h3>
+  <ul style="font-size:14px;">
+    <li><strong>Consignment number input</strong> — seller enters Pos Laju consignment number on order fulfilment</li>
+    <li><strong>Tracking API</strong> — Pos Laju Track &amp; Trace: <code>https://track.pos.com.my/postal-services/tracker</code></li>
+    <li><strong>Polling model</strong> — Pos Laju has no real-time webhooks. Use BullMQ job to poll tracking status every 4 hours per active shipment</li>
+    <li><strong>Goodie Box</strong> — BOMY bulk-books labels via corporate account; consignment numbers batch-uploaded to admin tracker; same polling mechanism shows status to all recipients simultaneously</li>
+  </ul>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ FOOTER -->
+<div class="revision-footer">
+  <strong>Revision History</strong>
+  <table style="margin-top:10px; border:none; background:transparent;">
+    <tr>
+      <td style="border:none; padding:4px 16px 4px 0; white-space:nowrap;"><strong>2026-04-23 v1.0</strong></td>
+      <td style="border:none; padding:4px 0;">Initial document — incorporates all 10 Q&amp;A answers from Proposal v2 Section 22, ADR status, pre-architecture checklist, and 4-phase setup plan.</td>
+    </tr>
+  </table>
+  <p style="margin-top:16px; font-size:12px; color:#888;">
+    <em>Next action: Charlie confirms consumer tier name and 4 stakeholder names, then Bob picks up ADR-04 fault matrix.</em>
+  </p>
+</div>
+
+</div><!-- .page -->
+</body>
+</html>
